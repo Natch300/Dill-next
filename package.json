@@ -1,0 +1,29 @@
+{
+  "name": "dill-next",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dill Next pickleball club management — static HTML, CSS and JavaScript",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.js",
+    "test:db": "node scripts/test-db.mjs",
+    "test:browser": "node scripts/test-browser.mjs",
+    "test:platform": "node scripts/test-platform-browser.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.2",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17",
+    "@playwright/test": "^1.65.1",
+    "esbuild": "^0.28.2"
+  }
+}
