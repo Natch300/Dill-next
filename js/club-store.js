@@ -1,4 +1,5 @@
 import {config} from '../config.js';
+import {isLiveMode} from './runtime-mode.js';
 import {demoState} from './demo.js';
 import {emptyState,dispatch} from './engine.js';
 import {PLATFORM_KEY,SESSION_KEY,clubStorageKey,memberRole} from './platform-domain.js';
@@ -12,7 +13,7 @@ function updateSampleBrand(state){
   return state;
 }
 export class ClubStore extends EventTarget{
-  constructor(){super();const p=new URLSearchParams(location.search);this.live=p.has('live');this.token=p.get('invite');this.clubId=p.get('club')||config.clubId;this.platformClub=p.has('club');this.storageKey=this.platformClub?clubStorageKey(this.clubId):DEMO;this.role='visitor';this.state=emptyState();this.version=0;this.status='Loading';this.pending=false;this.userId=null;}
+  constructor(){super();const p=new URLSearchParams(location.search);this.live=isLiveMode(p);this.token=p.get('invite');this.clubId=p.get('club')||config.clubId;this.platformClub=p.has('club');this.storageKey=this.platformClub?clubStorageKey(this.clubId):DEMO;this.role='visitor';this.state=emptyState();this.version=0;this.status='Loading';this.pending=false;this.userId=null;}
   notify(){this.dispatchEvent(new Event('change'));}
   async rpc(name,args){const{data,error}=await this.client.rpc(name,args);if(error)throw new Error(error.message);return data;}
   localAccess(){
@@ -44,8 +45,8 @@ export class ClubStore extends EventTarget{
     try{const expected=this.version,next=dispatch(this.state,command,payload);if(this.live){const result=await this.rpc('commit_club',{p_club:this.clubId,p_expected:expected,p_payload:next,p_action:command});this.state=result.payload;this.version=result.version;this.notify();}else await this.localWrite(saved=>{if(saved.version!==expected)throw new Error('STALE');return{state:next,version:expected+1};});return this.state;
     }catch(error){if(error.message.includes('STALE')){await this.refresh();throw new Error('Another organizer changed this club. Current courts and scores are shown; review and retry.');}throw error;}finally{this.pending=false;}
   }
-  async signIn(){location.href=`./${this.live?'?live=1':''}#signin`;}
-  async signOut(){if(this.client)await this.client.auth.signOut();else sessionStorage.removeItem(SESSION_KEY);location.href=`./${this.live?'?live=1':''}`;}
+  async signIn(){location.href=`./${this.live?'?live=1':'?live=0'}#signin`;}
+  async signOut(){if(this.client)await this.client.auth.signOut();else sessionStorage.removeItem(SESSION_KEY);location.href=`./${this.live?'?live=1':'?live=0'}`;}
   async guest(action,payload={}){
     if(this.live){await this.rpc(this.role==='member'?'member_play_action':'guest_action',this.role==='member'?{p_club:this.clubId,p_action:action,p_data:payload}:{p_token:this.token,p_action:action,p_data:payload});await this.refresh();return;}
     this.localAccess();if(!['guest','member'].includes(this.role))throw new Error('Player or visitor access required.');

@@ -10,11 +10,16 @@ await rm(output,{recursive:true,force:true});
 await mkdir(output, { recursive: true });
 for (const item of ['index.html', 'club.html', 'portal.css', 'styles.css', 'config.js', 'js', 'vendor', 'assets']) await cp(item, `dist/${item}`, { recursive: true });
 // Exact allowlist: no .env files, SQL, server scripts, or dependency tree are published.
+let localEnv={};
 try {
-  const env = Object.fromEntries((await readFile('.env.local', 'utf8')).split(/\r?\n/).filter(l => l.includes('=')).map(l => { const i = l.indexOf('='); return [l.slice(0, i), l.slice(i + 1)]; }));
-  if (env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
-    const { config } = await import('../config.js');
-    await writeFile('dist/config.js', `export const config = ${JSON.stringify({ ...config, supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL, supabaseKey: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }, null, 2)};\n`);
-  }
+  localEnv = Object.fromEntries((await readFile('.env.local', 'utf8')).split(/\r?\n/).filter(l => l.includes('=')&&!l.trimStart().startsWith('#')).map(l => { const i = l.indexOf('='); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^(['"])(.*)\1$/, '$2')]; }));
 } catch (e) { if (e.code !== 'ENOENT') throw e; }
+const {config}=await import('../config.js');
+const publicConfig={
+  ...config,
+  supabaseUrl:process.env.NEXT_PUBLIC_SUPABASE_URL||localEnv.NEXT_PUBLIC_SUPABASE_URL||config.supabaseUrl,
+  supabaseKey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||localEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||config.supabaseKey,
+  defaultLive:process.env.VERCEL==='1'||config.defaultLive===true
+};
+await writeFile('dist/config.js',`export const config = ${JSON.stringify(publicConfig,null,2)};\n`);
 console.log('Built static frontend in dist/. Public Supabase settings only.');

@@ -1,7 +1,8 @@
 import {config} from '../config.js';
+import {isLiveMode} from './runtime-mode.js';
 import {emptyPlatform,platformAction,PLATFORM_KEY,SESSION_KEY,clubStorageKey} from './platform-domain.js';
 export class PlatformStore extends EventTarget{
-  constructor(){super();this.live=new URLSearchParams(location.search).has('live');this.db=emptyPlatform();this.user=null;this.loading=false;}
+  constructor(){super();this.live=isLiveMode(new URLSearchParams(location.search));this.db=emptyPlatform();this.user=null;this.loading=false;}
   changed(){this.dispatchEvent(new Event('change'));}
   async init(){
     if(this.live){const{createClient}=await import('../vendor/supabase.js');this.client=createClient(config.supabaseUrl,config.supabaseKey);const{data:{session}}=await this.client.auth.getSession();this.user=session?.user&&!session.user.is_anonymous?{id:session.user.id,email:session.user.email}:null;if(this.user)await this.rpc('save_player_profile',{p_name:session.user.user_metadata.display_name||session.user.email.split('@')[0],p_onboarding:session.user.user_metadata.onboarding||{}});}
@@ -51,5 +52,5 @@ export class PlatformStore extends EventTarget{
     if(this.live)return this.rpc('preview_membership_invite',{p_token:token});
     const inv=this.db.invites.find(i=>i.token===token&&i.kind==='membership'&&!i.revoked&&i.expires_at>Date.now());if(!inv)throw new Error('This membership invitation has expired or been revoked.');const c=this.db.clubs.find(c=>c.id===inv.club_id);return{id:c.id,name:c.name,tagline:c.tagline,logo:c.logo};
   }
-  clubUrl(id){return`club.html?${this.live?'live=1&':''}club=${encodeURIComponent(id)}#open/courts`;}
+  clubUrl(id){return`club.html?${this.live?'live=1&':'live=0&'}club=${encodeURIComponent(id)}#open/courts`;}
 }

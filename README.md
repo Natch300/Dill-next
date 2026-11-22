@@ -105,11 +105,26 @@ npm run build
 
 After applying SQL and deploying, verify email confirmation, approval, a guest QR on another device, Realtime scoring and simultaneous organizer saves against the hosted project. These external services are not confirmed by local tests.
 
-## Deploy
+## Publish on Vercel
 
-Run `npm run build`, then publish **only `dist/`** to your HTTPS static host. Build command: `npm run build`; output directory: `dist`. No route rewrites are needed because navigation uses hash routes. SQL, tests, server scripts and environment files are excluded. Browser dependencies and fonts are bundled locally.
+The repository includes `vercel.json`: Framework **Other**, install **npm ci**, build **npm run build**, output **dist**. Only the built frontend is published. Hash routes and `club.html` work without a catch-all rewrite.
 
-The root website opens in prototype mode. Use **`/?live=1`** for real Supabase accounts; live links retain that mode. Nothing has been published automatically.
+1. Open https://vercel.com/new and import **Natch300/Dill-next** from GitHub. Grant Vercel access to this repository if asked.
+2. Keep the root directory at the repository root. The build and output settings are supplied by `vercel.json`.
+3. Optionally set these environment variables for Production and Preview if you want to override the public connection settings already in `config.js`:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   Use the values in your local configuration. Do not add a service-role key. Vercel environment variables take precedence over `.env.local` and `config.js`.
+4. Click **Deploy**. Vercel builds the static site and assigns its URL. Future pushes to the connected production branch deploy automatically.
+5. In Supabase Auth URL Configuration, set **Site URL** to that exact production HTTPS origin. Add `https://YOUR-ACTUAL-DOMAIN/**` to allowed Redirect URLs, keeping the localhost entry for development. Use the actual assigned domain; the repository name does not reserve a domain.
+6. Apply migrations 001 and 002 once if not already applied. Enable Email signup and anonymous sign-ins as described above. Confirm the `club_revisions` Realtime publication entry.
+7. Open the deployed website, create an account, confirm the email if required, activate a pass and create a club. Verify a membership invitation and an Open Play QR from a second device.
+
+Vercel builds automatically default to **connected Supabase accounts**, so visitors do not need `?live=1`. Source/local builds continue to use browser-local data by default. `?live=1` explicitly selects connected accounts, `?live=0` selects browser-local accounts, and `club.html?explore=1` opens the starter clubhouse. Existing browser-local profiles are not copied to Supabase; create a connected account to use the hosted service.
+
+To deploy elsewhere, run `npm run build` and publish only `dist/` to an HTTPS static host. Add `VERCEL=1` to the build environment if you want the same connected-account default. No Node server is required in production. The `.vercel/` connection directory is ignored by Git.
+
+References: [Vercel project configuration](https://vercel.com/docs/project-configuration/vercel-json), [Git deployments](https://vercel.com/docs/deployments/git), and [Supabase redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
 
 ## File map
 
